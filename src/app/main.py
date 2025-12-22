@@ -15,7 +15,8 @@ logger.setLevel(logging.INFO)
 
 handler = logging.StreamHandler()
 formatter = logging.Formatter(
-    "%(asctime)s | %(levelname)s | %(name)s | %(message)s"
+    '{"time": "%(asctime)s", "level": "%(levelname)s", '
+    '"service": "%(name)s", "message": "%(message)s"}'
 )
 handler.setFormatter(formatter)
 
