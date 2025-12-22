@@ -2,7 +2,7 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, validator
 import joblib
-import os
+from pathlib import Path
 import pandas as pd
 import time
 import logging
@@ -35,17 +35,23 @@ total_requests = 0
 total_latency = 0.0
 
 # ---------------------------------------------------
-# Load Model (Trained Pipeline)
+# Lazy Model Loading
 # ---------------------------------------------------
-model_path = os.path.join(os.path.dirname(__file__), "housing_pipeline.pkl")
+BASE_DIR = Path(__file__).resolve().parent
+MODEL_PATH = BASE_DIR / "model" / "housing_pipeline.pkl"
 
-try:
-    model = joblib.load(model_path)
-    logger.info(f"Model successfully loaded from: {model_path}")
-except Exception as e:
-    logger.exception(f"Error loading model from {model_path}: {e}")
-    # Fatal error: API is useless without model
-    raise RuntimeError("Model could not be loaded")
+model = None
+
+
+def load_model():
+    global model
+    if model is None:
+        if not MODEL_PATH.exists():
+            logger.error(f"Model file not found at {MODEL_PATH}")
+            raise RuntimeError("Model could not be loaded")
+        model = joblib.load(MODEL_PATH)
+        logger.info(f"Model successfully loaded from: {MODEL_PATH}")
+    return model
 
 # ---------------------------------------------------
 # Pydantic Input Schema
@@ -111,7 +117,9 @@ def predict(data: HouseData):
     df = pd.DataFrame([data.model_dump()])
 
     try:
+        model = load_model()
         prediction = float(model.predict(df)[0])
+
     except Exception as e:
         logger.error(f"Prediction Error: {str(e)}")
         raise HTTPException(status_code=400, detail=f"Model Error: {str(e)}")
