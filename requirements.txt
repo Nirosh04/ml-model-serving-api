@@ -1,0 +1,6 @@
+fastapi
+uvicorn[standard]
+pandas
+joblib
+scikit-learn==1.7.2
+httpx
